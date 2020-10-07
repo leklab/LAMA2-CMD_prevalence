@@ -41,8 +41,8 @@ iloc picks the important column
 These steps are repeated in the next two code chunks below
 -------------------------------
 '''
-effect = lama2_clin_var.INFO.str.extractall(r';(CLNVC=.+?);') # variant type
-effect = effect.iloc[:,0].str.split(pat = "=", expand=True).reset_index(level=1, drop=True).iloc[:,1]
+type = lama2_clin_var.INFO.str.extractall(r';(CLNVC=.+?);') # variant type
+type = type.iloc[:,0].str.split(pat = "=", expand=True).reset_index(level=1, drop=True).iloc[:,1]
 
 mc = lama2_clin_var.INFO.str.extractall(r';(MC=.+?);') # molecular consequence
 mc = mc.iloc[:,0].str.split(pat = "|", expand=True).reset_index(level=1, drop=True).iloc[:,1]
@@ -52,13 +52,13 @@ hgvs = hgvs.iloc[:,0].str.split(pat = "=", expand=True).reset_index(level=1, dro
 
 # Binding important data points to original table
 lama2_clin_var.loc[:,'sig'] = sig
-lama2_clin_var.loc[:,'effect'] = effect
+lama2_clin_var.loc[:,'type'] = type
 lama2_clin_var.loc[:,'mc'] = mc
 lama2_clin_var.loc[:,'hgvs'] = hgvs
 
 # Standardising data frame
 lama2_clin_var = lama2_clin_var.rename(columns={'ID': 'clinvar'})
-lama2_clin_var = lama2_clin_var.loc[:,['clinvar','hgvs','sig','effect','mc']]
+lama2_clin_var = lama2_clin_var.loc[:,['clinvar','hgvs','sig','type','mc']]
 
 # Filtering pathogenic variants
 pathogenic_clin_var = lama2_clin_var[lama2_clin_var.sig.str.match(r'.*[Pp]athogenic')]
@@ -72,8 +72,8 @@ print(tmp)
 print('Total variants:', tmp.sum())
 
 ## by variant type
-print('\nCounts by pathogenic variant effect\n')
-tmp = pathogenic_clin_var.effect.value_counts(dropna=False)
+print('\nCounts by pathogenic variant type\n')
+tmp = pathogenic_clin_var.type.value_counts(dropna=False)
 print(tmp)
 print('Total variants:', tmp.sum())
 
@@ -113,9 +113,9 @@ lovd = lovd.rename(
 	'DBID':'lovd',
 	'DNA/hg38':'hgvs',
 	'ClinicalClassification':'sig',
-	'type':'effect'}
+	'type':'type'}
 	)
-lovd = lovd.loc[:,['lovd','hgvs','sig','effect']]
+lovd = lovd.loc[:,['lovd','hgvs','sig','type']]
 
 # Filtering pathogenic variants
 pathogenic_lovd = lovd[lovd.sig.str.match(r'.*[Pp]athogenic.*', na=False)]
@@ -128,9 +128,9 @@ tmp = lovd.sig.value_counts(dropna=False)
 print(tmp)
 print('Total variants:', tmp.sum())
 
-## by pathogenic variant effect
-print('\nCounts by pathogenic variant effect\n')
-tmp = pathogenic_lovd.effect.value_counts(dropna=False)
+## by pathogenic variant type
+print('\nCounts by pathogenic variant type\n')
+tmp = pathogenic_lovd.type.value_counts(dropna=False)
 print(tmp)
 print('Total variants:', tmp.sum())
 
@@ -144,10 +144,10 @@ print('\
 \n----------------------------------')
 
 # Load file
-EGL = pd.read_csv('./EmVClass.2020-Q3.csv', usecols = range(0,9), header = None)
+egl = pd.read_csv('./EmVClass.2020-Q3.csv', usecols = range(0,9), header = None)
 
 # Rename columns accordingly
-EGL.columns = ['egl',
+egl.columns = ['egl',
 		'gene',
 		'',
 		'exon',
@@ -159,26 +159,32 @@ EGL.columns = ['egl',
 
 
 # Filter LAMA2
-lama2_EGL = EGL[EGL.iloc[:,1].str.match(r'LAMA2')]
-lama2_EGL = lama2_EGL.loc[:,['egl','hgvs','sig']]
+lama2_egl = egl[egl.iloc[:,1].str.match(r'LAMA2')]
+lama2_egl = lama2_egl.loc[:,['egl','hgvs','sig']]
 
-lama2_EGL.hgvs = lama2_EGL.hgvs.apply(parse)
+lama2_egl.hgvs = lama2_egl.hgvs.apply(parse)
 
-try:
-	for i in range(0,lama2_EGL.shape[0]):
-		lama2_EGL.hgvs.iloc[i] = str(c_to_g(lama2_EGL.hgvs.iloc[i]))
-except:
-	pass
-	#add a count line and print number of exceptions
+count = 0
+
+for i in range(0,lama2_egl.shape[0]):
+	try:
+		lama2_egl.hgvs.iloc[i] = c_to_g(lama2_egl.hgvs.iloc[i])
+	except:
+		print('Exception:', lama2_egl.hgvs.iloc[i])
+		count += 1
+		print('Number of exceptions:', count)
+		pass
+
+lama2_egl.hgvs = lama2_egl.hgvs.apply(str)
 
 # Pathogenic variants
-pathogenic_EGL = lama2_EGL[lama2_EGL.sig.str.match(r'[Pp]athogenic')]
+pathogenic_egl = lama2_egl[lama2_egl.sig.str.match(r'[Pp]athogenic')]
 
 # Print variant counts
 
 ## by clinical significance
 print('\nCounts by clinical significance\n')
-tmp = lama2_EGL.sig.value_counts(dropna=False)
+tmp = lama2_egl.sig.value_counts(dropna=False)
 print(tmp)
 print('Total variants:', tmp.sum())
 
@@ -190,3 +196,21 @@ print('\
 \n	Merge datasets together      \
 \n\
 \n-----------------------------------')
+
+merged_list = lama2_clin_var.merge(lovd, on = 'hgvs', how = 'outer').merge(lama2_egl, on = 'hgvs', how = 'outer')
+print('\nNumber of unique variants:', merged_list.hgvs.value_counts().sum())
+
+merged_list = pathogenic_clin_var.merge(pathogenic_lovd, on = 'hgvs', how = 'outer').merge(pathogenic_egl, on = 'hgvs', how = 'outer')
+print('\nNumber of unique pathogenic variants:', merged_list.hgvs.value_counts().sum())
+
+overlap_all = pathogenic_clin_var.merge(pathogenic_lovd, on = 'hgvs', how = 'inner').merge(pathogenic_egl, on = 'hgvs', how = 'inner')
+print('\nOverlapping variants in all datasets:', overlap_all.hgvs.value_counts().sum())
+
+overlap_lovd_egl = pathogenic_lovd.merge(pathogenic_egl, on = 'hgvs', how = 'inner')
+print('\nOverlapping variants in LOVD and EGL:', overlap_lovd_egl.hgvs.value_counts().sum())
+
+overlap_lovd_clinvar = pathogenic_lovd.merge(pathogenic_clin_var, on = 'hgvs', how = 'inner')
+print('\nOverlapping variants in ClinVar and LOVD:', overlap_lovd_clinvar.hgvs.value_counts().sum())
+
+overlap_clinvar_egl = pathogenic_clin_var.merge(pathogenic_egl, on = 'hgvs', how = 'inner')
+print('\nOverlapping variants in EGL and ClinVar:', overlap_clinvar_egl.hgvs.value_counts().sum())
