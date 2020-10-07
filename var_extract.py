@@ -164,15 +164,12 @@ lama2_EGL = lama2_EGL.loc[:,['egl','hgvs','sig']]
 
 lama2_EGL.hgvs = lama2_EGL.hgvs.apply(parse)
 
-#lama2_EGL.hgvs = lama2_EGL.hgvs.apply(c_to_g)
-#lama2_EGL.hgvs = lama2_EGL.hgvs.apply(str)
-
 try:
 	for i in range(0,lama2_EGL.shape[0]):
 		lama2_EGL.hgvs.iloc[i] = str(c_to_g(lama2_EGL.hgvs.iloc[i]))
 except:
 	pass
-#add a count line and print number of exceptions
+	#add a count line and print number of exceptions
 
 # Pathogenic variants
 pathogenic_EGL = lama2_EGL[lama2_EGL.sig.str.match(r'[Pp]athogenic')]
