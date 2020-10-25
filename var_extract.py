@@ -9,6 +9,8 @@ Dependencies:
 - ClinVar data freeze (weekly, *.vcf)
 - LAMA2 LOVD data freeze (quarterly, *.txt)
 - EGL data freeze (quarterly, *.csv)
+- For pyhgvs functionality: refGene file from UCSC (ftp://hgdownload.cse.ucsc.edu/goldenPath/hg38/database/refGene.txt.gz) [edit the LAMA2 transcript name to NM_000426.3]
+- For pyhgvs functionality: GRCh38 from both NCBI and UCSC (to conserve space, download just chr6)
 '''
 # Load necessary modules
 import os
@@ -38,7 +40,7 @@ dtype = {'single_nucleotide_variant':'SNV',
 # Fetching reference files for HGVS to VCF genomic coordinate formatting
 genome = Fasta('/mnt/c/Users/hiphe/Downloads/GRCh38_latest_genomic.fna')
 genome2 = Fasta('/mnt/c/Users/hiphe/Downloads/chr6.fa')
-with open('./genes.refGene') as infile:
+with open('./refGene.txt') as infile:
 	transcripts = hgvs_utils.read_transcripts(infile)
 
 def get_transcript(name):
@@ -57,8 +59,9 @@ clin_var=pd.read_csv("./clinvar_20200905.vcf",
 			skiprows=27,
 			header=0)
 
-# Filter out LAMA2 variants without conflicting interpretatation
+# Filter for LAMA2
 lama2_clin_var = clin_var[clin_var.INFO.str.match(r'(.*LAMA2.*)')]
+lama2_clin_var['ID'] = 'clinvar_' + lama2_clin_var['ID'].astype(str)
 
 # Extract important counts
 sig = lama2_clin_var.INFO.str.extractall(r';(CLNSIG=.+?);') # variant significance
@@ -90,8 +93,7 @@ lama2_clin_var.loc[:,'mc'] = mc
 lama2_clin_var.loc[:,'hgvs'] = hgvs
 
 # Standardising data frame
-lama2_clin_var = lama2_clin_var.rename(columns={'ID': 'clinvar'})
-lama2_clin_var = lama2_clin_var.loc[:,['clinvar','CHROM','POS','REF','ALT','hgvs','sig','type','mc']]
+lama2_clin_var = lama2_clin_var.loc[:,['ID','CHROM','POS','REF','ALT','hgvs','sig','type','mc']]
 lama2_clin_var = lama2_clin_var.replace({'type':dtype})
 lama2_clin_var = lama2_clin_var.replace('Conflicting_interpretations_of_pathogenicity','VUS')
 lama2_clin_var = lama2_clin_var.replace({'sig':dsig})
@@ -147,13 +149,13 @@ lovd_ori['DNA/hg38'] = "NC_000006.12:" + lovd_ori['DNA/hg38'].astype(str)
 
 lovd = lovd_ori.rename(
 		columns = {
-		'DBID':'lovd',
+		'DBID':'ID',
 		'DNA/hg38':'hgvs',
 		'ClinicalClassification':'sig'}
 		)
 
 # Selecting important columns
-lovd = lovd.loc[:,['lovd','hgvs','sig','type']]
+lovd = lovd.loc[:,['ID','hgvs','sig','type']]
 lovd = lovd.replace({'type':dtype})
 
 # Converting HGVS to VCF genomic coordinates
@@ -163,10 +165,11 @@ for i in lovd.index:
 	try:
 		CHROM, POS, REF, ALT = pyhgvs.parse_hgvs_name(lovd.loc[i,'hgvs'], genome)
 	except:
-		print('Exception:', lovd.loc[i,'hgvs'])
+		print('\nException:', lovd.loc[i,'hgvs'])
 		count += 1
 		print('Number of exceptions:', count)
 		pass
+
 	lovd.loc[i,'CHROM'] = 6
 	lovd.loc[i,"POS"] = POS
 	lovd.loc[i,"REF"] = REF
@@ -202,7 +205,7 @@ print('\
 egl = pd.read_csv('./EmVClass.2020-Q3.csv', usecols = range(0,9), header = None)
 
 # Rename columns accordingly
-egl.columns = ['egl',
+egl.columns = ['ID',
 		'gene',
 		'',
 		'exon',
@@ -215,8 +218,9 @@ egl.columns = ['egl',
 
 # Filter LAMA2
 lama2_egl = egl[egl.iloc[:,1].str.match(r'LAMA2')]
-lama2_egl = lama2_egl.loc[:,['egl','hgvs','sig']]
+lama2_egl = lama2_egl.loc[:,['ID','hgvs','sig']]
 lama2_egl = lama2_egl.replace({'sig':dsig})
+lama2_egl['ID'] = 'egl_' + lama2_egl['ID'].astype(str)
 
 # Converting HGVS to VCF genomic coordinates
 count = 0
@@ -227,10 +231,11 @@ for i in lama2_egl.index:
 								genome2,
 								get_transcript=get_transcript)
 	except:
-		print('Exception:', lama2_egl.loc[i,'hgvs'])
+		print('\nException:', lama2_egl.loc[i,'hgvs'])
 		count += 1
 		print('Number of exceptions:', count)
 		pass
+
 	lama2_egl.loc[i,"CHROM"] = 6
 	lama2_egl.loc[i,"POS"] = POS
 	lama2_egl.loc[i,"REF"] = REF
@@ -256,20 +261,65 @@ print('\
 \n\
 \n-----------------------------------')
 
-merged_list_all = lama2_clin_var.merge(lovd, on = ["POS","REF","ALT"], how = 'outer').merge(lama2_egl, on = ["POS","REF","ALT"], how = 'outer')
-print('\nNumber of unique variants:', merged_list_all.shape[0])
+# Full list of LAMA2 variants
+all_vars = lama2_clin_var.merge(lovd, on = ["CHROM","POS","REF","ALT"], how = 'outer').merge(lama2_egl, on = ["CHROM","POS","REF","ALT"], how = 'outer')
 
-merged_list = pathogenic_clin_var.merge(pathogenic_lovd, on = ["POS","REF","ALT"], how = 'outer').merge(pathogenic_egl, on = ["POS","REF","ALT"], how = 'outer')
-print('\nNumber of unique pathogenic variants:', merged_list.shape[0])
+## Resolving conflicts among significances
+for i in all_vars.index :
 
-overlap_all = pathogenic_clin_var.merge(pathogenic_lovd, on = ["POS","REF","ALT"], how = 'inner').merge(pathogenic_egl, on = ["POS","REF","ALT"], how = 'inner')
+	sig_clinvar = all_vars.loc[i,'sig_x']
+	sig_lovd = all_vars.loc[i,'sig_y']
+	sig_egl = all_vars.loc[i,'sig']
+	sigs = [keep for keep in [sig_clinvar, sig_lovd, sig_egl] if str(keep) != 'nan'] #keep only the non-NaN values
+
+	if ('VUS' in sigs) :
+		all_vars.loc[i,'sig'] = 'VUS'
+
+	elif all(re.match(r'.*([Bb]enign).*', sig) for sig in sigs) :
+		all_vars.loc[i,'sig'] = 'Benign'
+
+	elif all(re.match(r'.*([Pp]athogenic).*', sig) for sig in sigs) :
+		all_vars.loc[i,'sig'] = 'Pathogenic'
+
+	elif np.unique(sig).size != len(sig) : #shows that each element sig is unique
+		all_vars.loc[i,'sig'] = 'VUS'
+	else:
+		print("There's an exception here:\n",
+			"Index:", i, '\n',
+			'Issue resolving: sigs \n')
+
+## Display value counts for variant significance
+print(all_vars.sig.value_counts(), '\nTotal variants:', all_vars.shape[0])
+
+## Standardizing columns to VCF format
+all_vars['ID'] = all_vars.loc[:,['ID_x','ID_y','ID']].apply(lambda x:
+								','.join(x.dropna().astype(str)), axis=1)
+all_vars['QUAL'] = '.'
+all_vars['FILTER'] = '.'
+all_vars['INFO'] = all_vars.loc[:,
+				['sig','type_x','type_y']
+				 ].apply(
+				  	lambda x: ','.join(x.dropna().astype(str)), axis=1
+				  	)
+
+all_vars = all_vars[['CHROM','POS','ID','REF','ALT','QUAL','FILTER','INFO']].sort_values(by = 'POS')
+
+# Pathogenic only
+pathogenic_all = all_vars[all_vars.INFO.str.match(r'Pathogenic')]
+print('\nNumber of unique pathogenic variants:', pathogenic_all.shape[0])
+
+# Overlapping between all
+overlap_all = pathogenic_clin_var.merge(pathogenic_lovd, on = ["CHROM","POS","REF","ALT"], how = 'inner').merge(pathogenic_egl, on = ["CHROM","POS","REF","ALT"], how = 'inner')
 print('\nOverlapping variants in all datasets:', overlap_all.shape[0])
 
-overlap_lovd_egl = pathogenic_lovd.merge(pathogenic_egl, on = ["POS","REF","ALT"], how = 'inner')
+# Overlapping between LOVD and EGL
+overlap_lovd_egl = pathogenic_lovd.merge(pathogenic_egl, on = ["CHROM","POS","REF","ALT"], how = 'inner')
 print('\nOverlapping variants in LOVD and EGL:', overlap_lovd_egl.shape[0])
 
-overlap_lovd_clinvar = pathogenic_lovd.merge(pathogenic_clin_var, on = ["POS","REF","ALT"], how = 'inner')
+# Overlapping between LOVD and ClinVar
+overlap_lovd_clinvar = pathogenic_lovd.merge(pathogenic_clin_var, on = ["CHROM","POS","REF","ALT"], how = 'inner')
 print('\nOverlapping variants in ClinVar and LOVD:', overlap_lovd_clinvar.shape[0])
 
-overlap_clinvar_egl = pathogenic_clin_var.merge(pathogenic_egl, on = ["POS","REF","ALT"], how = 'inner')
+# Overlapping between ClinVar and EGL
+overlap_clinvar_egl = pathogenic_clin_var.merge(pathogenic_egl, on = ["CHROM","POS","REF","ALT"], how = 'inner')
 print('\nOverlapping variants in EGL and ClinVar:', overlap_clinvar_egl.shape[0])
