@@ -50,13 +50,14 @@ dtype = {'single_nucleotide_variant':'SNV',
 '''
 genome = Fasta('/mnt/c/Users/hiphe/Downloads/GRCh38_latest_genomic.fna')
 genome2 = Fasta('/mnt/c/Users/hiphe/Downloads/chr6.fa')
-with open('./refGene.txt') as infile:
+'''
+
+with open('reference/refGene.txt') as infile:
 	transcripts = hgvs_utils.read_transcripts(infile)
 
 def get_transcript(name):
 	return transcripts.get(name)
 
-'''
 
 def clinvar_variants(filename) :
 	print('\
@@ -124,7 +125,7 @@ def clinvar_variants(filename) :
 	return lama2_clinvar
 ###---------------------------------------------------------------------------------------------------------
 
-'''
+
 def lovd_variants(filename) :
 
 	print('\
@@ -162,31 +163,41 @@ def lovd_variants(filename) :
 	lovd = lovd.loc[:,['ID','hgvs','sig','type']]
 	lovd = lovd.replace({'type':dtype})
 
+
+	genome = Fasta('reference/NC_000006.fa')
+
 	# Converting HGVS to VCF genomic coordinates
 	count = 0
 
+		
 	for i in lovd.index:
 		try:
+			#print('Trying %d\n' %(lovd.loc[i,'hgvs']))
 			CHROM, POS, REF, ALT = pyhgvs.parse_hgvs_name(lovd.loc[i,'hgvs'], genome)
+			lovd.loc[i,'CHROM'] = 6
+			lovd.loc[i,"POS"] = POS
+			lovd.loc[i,"REF"] = REF
+			lovd.loc[i,"ALT"] = ALT
 		except:
 			print('\nException:', lovd.loc[i,'hgvs'])
 			count += 1
 			print('Number of exceptions:', count)
 			pass
-
-		lovd.loc[i,'CHROM'] = 6
-		lovd.loc[i,"POS"] = POS
-		lovd.loc[i,"REF"] = REF
-		lovd.loc[i,"ALT"] = ALT
-
+	
 	# Filtering pathogenic variants
-	pathogenic_lovd = lovd[lovd.sig.str.match(r'.*[Pp]athogenic.*', na=False)]
+	#pathogenic_lovd = lovd[lovd.sig.str.match(r'.*[Pp]athogenic.*', na=False)]
 
-	return [lovd, pathogenic_lovd]
+	#return [lovd, pathogenic_lovd]
+	lovd.dropna(inplace=True)
+	lovd = lovd.astype({'CHROM': 'int32', 'POS': 'int32'})
+
+	#print(lovd)
+
+	return lovd
 ###-------------------------------------------------------------------------------------------
-'''
 
-'''
+
+
 def egl_variants(filename) :
 	print('\
 	\n----------------------------------\
@@ -216,31 +227,39 @@ def egl_variants(filename) :
 	lama2_egl = lama2_egl.replace({'sig':dsig})
 	lama2_egl['ID'] = 'egl_' + lama2_egl['ID'].astype(str)
 
+	genome = Fasta('reference/chr6.fa')
+
 	# Converting HGVS to VCF genomic coordinates
 	count = 0
+	transcript = get_transcript('NM_000426')
 
+	
 	for i in lama2_egl.index:
 		try:
-			CHROM, POS, REF, ALT = pyhgvs.parse_hgvs_name(lama2_egl.loc[i,'hgvs'],
-									genome2,
-									get_transcript=get_transcript)
+			#CHROM, POS, REF, ALT = pyhgvs.parse_hgvs_name(lama2_egl.loc[i,'hgvs'], genome, get_transcript=get_transcript)
+			CHROM, POS, REF, ALT = pyhgvs.parse_hgvs_name(lama2_egl.loc[i,'hgvs'], genome, transcript)
+			lama2_egl.loc[i,"CHROM"] = 6
+			lama2_egl.loc[i,"POS"] = POS
+			lama2_egl.loc[i,"REF"] = REF
+			lama2_egl.loc[i,"ALT"] = ALT
+
 		except:
 			print('\nException:', lama2_egl.loc[i,'hgvs'])
 			count += 1
 			print('Number of exceptions:', count)
 			pass
-
-		lama2_egl.loc[i,"CHROM"] = 6
-		lama2_egl.loc[i,"POS"] = POS
-		lama2_egl.loc[i,"REF"] = REF
-		lama2_egl.loc[i,"ALT"] = ALT
+	
+	lama2_egl = lama2_egl.astype({'CHROM': 'int32', 'POS': 'int32'})
 
 	# Pathogenic variants
-	pathogenic_egl = lama2_egl[lama2_egl.sig.str.match(r'[Pp]athogenic')]
+	#pathogenic_egl = lama2_egl[lama2_egl.sig.str.match(r'[Pp]athogenic')]
 
-	return [lama2_egl, pathogenic_egl]
+	#return [lama2_egl, pathogenic_egl]
+	return lama2_egl
 #----------------------------------------------------------------------------------------------
 
+
+'''
 def counts(database, query) :
 
 	# Determine database file location
@@ -280,8 +299,8 @@ def counts(database, query) :
 #-----------------------------------------------------------------------------------------------
 '''
 
-'''
-def merge_datasets(output):
+
+def merge_datasets(clinvar, lovd, egl, output):
 	print('\
 	\n-----------------------------------\
 	\n\
@@ -327,6 +346,8 @@ def merge_datasets(output):
 	all_vars['INFO'] = all_vars[['sig','type_x','type_y']].apply(lambda x: '|'.join(x.dropna().astype(str)), axis=1)
 
 	all_vars = all_vars[['CHROM','POS','ID','REF','ALT','QUAL','FILTER','INFO']].sort_values(by = 'POS')
+
+	all_vars.to_csv('unique_variants.tsv', sep = '\t', header = False, index = False)
 
 	# Pathogenic only
 	pathogenic_all = all_vars[all_vars.INFO.str.match(r'Pathogenic')]
@@ -379,7 +400,7 @@ def merge_datasets(output):
 
 	pathogenic_all.to_csv(output, sep = '\t', header = False, index = False)
 #-------------------------------------------------------------------
-'''
+
 
 '''
 print('\
@@ -397,7 +418,15 @@ print('\
 if __name__ == '__main__' :
 
 	clinvar = clinvar_variants('data/clinvar_20200905.vcf.gz')
-	clinvar.to_csv('test.tsv',index=False,sep='\t')
-	#lovd = lovd_variants(filename = './LOVD_full_download_LAMA2_2020-09-09_10.12.36.txt')[0]
-	#egl = egl_variants(filename = './EmVClass.2020-Q3.csv')[0]
+	#clinvar.to_csv('test.tsv',index=False,sep='\t')
+
+	lovd = lovd_variants(filename = 'data/LOVD_full_download_LAMA2_2020-09-09_10.12.36.txt')
+	#lovd.to_csv('lovd2.tsv',index=False,sep='\t')
+
+	#print(transcripts.get('NM_000426.3'))
+
+	egl = egl_variants(filename = 'data/EmVClass.2020-Q3.csv')
+	#egl.to_csv('test.tsv',index=False,sep='\t')
+
+	merge_datasets(clinvar,lovd,egl,output='unique_pathogenic_variants.tsv')
 	#merge_datasets(output = './test.vcf')
