@@ -23,8 +23,8 @@ import pyhgvs.utils as hgvs_utils
 import subprocess
 
 # Change to desired directory
-os.chdir("/mnt/c/Users/hiphe/OneDrive - yes.my/Google Drive/Education/UCSI University/Final Year/Co-op/LekLab")
-print("The current working directory is:", os.getcwd())
+#os.chdir("/mnt/c/Users/hiphe/OneDrive - yes.my/Google Drive/Education/UCSI University/Final Year/Co-op/LekLab")
+#print("The current working directory is:", os.getcwd())
 
 '''
 -----------------------------------
@@ -47,6 +47,7 @@ dtype = {'single_nucleotide_variant':'SNV',
 	'Duplication':'dup'}
 
 # Fetching reference files for HGVS to VCF genomic coordinate formatting
+'''
 genome = Fasta('/mnt/c/Users/hiphe/Downloads/GRCh38_latest_genomic.fna')
 genome2 = Fasta('/mnt/c/Users/hiphe/Downloads/chr6.fa')
 with open('./refGene.txt') as infile:
@@ -54,6 +55,8 @@ with open('./refGene.txt') as infile:
 
 def get_transcript(name):
 	return transcripts.get(name)
+
+'''
 
 def clinvar_variants(filename) :
 	print('\
@@ -63,8 +66,9 @@ def clinvar_variants(filename) :
 	\n\
 	\n-----------------------------------')
 
-	# Load the *.vcf file
+	# Load the *.vcf.gz file
 	clinvar=pd.read_csv(filename,
+				compression='gzip',
 				sep="\t",
 				skiprows=27,
 				header=0)
@@ -102,18 +106,25 @@ def clinvar_variants(filename) :
 	lama2_clinvar.loc[:,'mc'] = mc
 	lama2_clinvar.loc[:,'hgvs'] = hgvs
 
+	#Remove # in front of CHROM as column label
+	lama2_clinvar.rename(columns={'#CHROM': 'CHROM'},inplace=True)
+
 	# Standardising data frame
-	lama2_clinvar = lama2_clinvar.loc[:,['ID','CHROM','POS','REF','ALT','hgvs','sig','type','mc']]
+	#lama2_clinvar = lama2_clinvar.loc[:,['ID','CHROM','POS','REF','ALT','hgvs','sig','type','mc']]
+	lama2_clinvar = lama2_clinvar.reindex(columns=['ID','CHROM','POS','REF','ALT','hgvs','sig','type','mc'])
 	lama2_clinvar = lama2_clinvar.replace({'type':dtype})
 	lama2_clinvar = lama2_clinvar.replace('Conflicting_interpretations_of_pathogenicity','VUS') # all conflict resolved to 'uncertain significance'
 	lama2_clinvar = lama2_clinvar.replace({'sig':dsig})
 
 	# Filtering pathogenic variants
-	pathogenic_clinvar = lama2_clinvar[lama2_clinvar.sig.str.match(r'.*[Pp]athogenic')]
+	#pathogenic_clinvar = lama2_clinvar[lama2_clinvar.sig.str.match(r'.*[Pp]athogenic')]
+	#return [lama2_clinvar, pathogenic_clinvar]
+	#print(lama2_clinvar)
 
-	return [lama2_clinvar, pathogenic_clinvar]
+	return lama2_clinvar
 ###---------------------------------------------------------------------------------------------------------
 
+'''
 def lovd_variants(filename) :
 
 	print('\
@@ -173,7 +184,9 @@ def lovd_variants(filename) :
 
 	return [lovd, pathogenic_lovd]
 ###-------------------------------------------------------------------------------------------
+'''
 
+'''
 def egl_variants(filename) :
 	print('\
 	\n----------------------------------\
@@ -265,7 +278,9 @@ def counts(database, query) :
 		print('\nCompatible queries: significance, type')
 
 #-----------------------------------------------------------------------------------------------
+'''
 
+'''
 def merge_datasets(output):
 	print('\
 	\n-----------------------------------\
@@ -364,7 +379,9 @@ def merge_datasets(output):
 
 	pathogenic_all.to_csv(output, sep = '\t', header = False, index = False)
 #-------------------------------------------------------------------
+'''
 
+'''
 print('\
 \n-----------------------------------\
 \n\
@@ -372,12 +389,15 @@ print('\
 \n\
 \n-----------------------------------')
 
+'''
+
 # Estimate without novel gnomAD alleles
-subprocess.check_call(['Rscript', './prevalence_estimate.r'], shell = False)
+#subprocess.check_call(['Rscript', './prevalence_estimate.r'], shell = False)
 
 if __name__ == '__main__' :
 
-	clinvar = clinvar_variants(filename = './clinvar_20200905.vcf')[0]
-	lovd = lovd_variants(filename = './LOVD_full_download_LAMA2_2020-09-09_10.12.36.txt')[0]
-	egl = egl_variants(filename = './EmVClass.2020-Q3.csv')[0]
-	merge_datasets(output = './test.vcf')
+	clinvar = clinvar_variants('data/clinvar_20200905.vcf.gz')
+	clinvar.to_csv('test.tsv',index=False,sep='\t')
+	#lovd = lovd_variants(filename = './LOVD_full_download_LAMA2_2020-09-09_10.12.36.txt')[0]
+	#egl = egl_variants(filename = './EmVClass.2020-Q3.csv')[0]
+	#merge_datasets(output = './test.vcf')
