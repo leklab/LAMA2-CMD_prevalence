@@ -347,7 +347,7 @@ def merge_datasets(clinvar, lovd, egl, output):
 
 	all_vars = all_vars[['CHROM','POS','ID','REF','ALT','QUAL','FILTER','INFO']].sort_values(by = 'POS')
 
-	all_vars.to_csv('unique_variants.tsv', sep = '\t', header = False, index = False)
+	all_vars.to_csv('LAMA2_unique_variants.tsv', sep = '\t', header = False, index = False)
 
 	# Pathogenic only
 	pathogenic_all = all_vars[all_vars.INFO.str.match(r'Pathogenic')]
@@ -428,5 +428,5 @@ if __name__ == '__main__' :
 	egl = egl_variants(filename = 'data/EmVClass.2020-Q3.csv')
 	#egl.to_csv('test.tsv',index=False,sep='\t')
 
-	merge_datasets(clinvar,lovd,egl,output='unique_pathogenic_variants.tsv')
+	merge_datasets(clinvar,lovd,egl,output='LAMA2_pathogenic_variants.tsv')
 	#merge_datasets(output = './test.vcf')
