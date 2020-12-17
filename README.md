@@ -11,6 +11,10 @@ BioPython
 requests
 ```
 R
+```
+dplyr
+#install in R. install.packages("dplyr")
+```
 
 Data needed for pyhgvs
 ```
@@ -37,6 +41,6 @@ cd reference
 
 
 ## TO DO
-Remove warnings in python variant extraction script 
+Remove warnings in python variant extraction script  
 Automate code for hg19 to hg38 liftover of gnomad r2_1 variants
 
