@@ -101,10 +101,9 @@ get_prevelance_estimate <- function(pop){
 data = read.csv("LAMA2_known_pathogenic_novel_lof_gnomad_af.tsv",header=T,sep="\t")
 params = read.csv("data/beta_parameter_prior_ExAC.txt",header=T,sep="\t")
 
-#filtered_data = subset(data, ALL_AC < 30 & Annotation != 'start_lost' & gnomAD_Source != 'Genome_r3')
-filtered_data = subset(data, ALL_AC < 30 & Annotation != 'start_lost')
-#filtered_data = subset(data, ALL_AC < 30 & INFO != 'Novel_gnomAD_LoF' & Annotation != 'start_lost')
 
+cat("Estimates including known pathogenic variants and novel gnomAD loss of function variants\n")
+filtered_data = subset(data, ALL_AC < 40 & Annotation != 'start_lost')
 get_prevelance_estimate("ALL")
 get_prevelance_estimate("NFE")
 get_prevelance_estimate("AFR")
@@ -112,7 +111,13 @@ get_prevelance_estimate("AMR")
 get_prevelance_estimate("EAS")
 
 
-
+cat("\n\nConservative estimates including only known pathogenic variants\n")
+filtered_data = subset(data, ALL_AC < 40 & INFO != 'Novel_gnomAD_LoF' & Annotation != 'start_lost')
+get_prevelance_estimate("ALL")
+get_prevelance_estimate("NFE")
+get_prevelance_estimate("AFR")
+get_prevelance_estimate("AMR")
+get_prevelance_estimate("EAS")
 
 
 
