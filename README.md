@@ -38,13 +38,13 @@ cd reference
 ```
 
 ## Mutation database sources
-*ClinVar* - the 4th October 2020 data freeze was used  
+**ClinVar** - the 4th October 2020 data freeze was used  
 https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/archive_2.0/2020/clinvar_20201004.vcf.gz
   
-*LOVD* - Accessed in October 2020 and downloaded from the LAMA2 gene specific mutation database    
+**Leiden Open Variant Database (LOVD)** - Accessed in October 2020 and downloaded from the LAMA2 gene specific mutation database    
 https://databases.lovd.nl/shared/download/all/gene/LAMA2
   
-*EGL* - The 2020 Q4 data freeze was used  
+**Emory Genetics Laboratory (EGL)** - The 2020 Q4 data freeze was used  
 https://www.egl-eurofins.com/emvclass/CSVArchives/EmVClass.2020-Q4.csv 
 
 Downloaded files are included in this repository as input files to reproduce results. This is important as LOVD does not have data freezes.
@@ -56,7 +56,8 @@ data/LOVD_full_download_LAMA2_2020-09-09_10.12.36.txt
 ```
 
 ## Beta priors
-The R script uses beta priors generated from the ExAC data set from our previous publication.
+The R script uses beta priors generated from the ExAC data set from our previous [publication](https://pubmed.ncbi.nlm.nih.gov/31105274)
+and taken fron the github [repo](https://github.com/leklab/prevalence_estimation)
 ```
 data/beta_parameter_prior_ExAC.txt
 ```
