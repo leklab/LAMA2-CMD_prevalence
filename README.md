@@ -35,13 +35,16 @@ pip install -r requirements.txt
 cd reference
 ./get_fasta.sh
 
+#Get input data - Mutation databases and beta priors
+cd data
+./get_data.sh
 ```
 
 ## Mutation database sources
-**ClinVar** - the 4th October 2020 data freeze was used  
-https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/archive_2.0/2020/clinvar_20201004.vcf.gz
+**ClinVar** - the 5th September 2020 data freeze was used  
+https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/weekly/clinvar_20200905.vcf.gz  
   
-**Leiden Open Variant Database (LOVD)** - Accessed in October 2020 and downloaded from the LAMA2 gene specific mutation database    
+**Leiden Open Variant Database (LOVD)** - Accessed on 9th September 2020 and downloaded from the LAMA2 gene specific mutation database    
 https://databases.lovd.nl/shared/download/all/gene/LAMA2
   
 **Emory Genetics Laboratory (EGL)** - The 2020 Q4 data freeze was used  
