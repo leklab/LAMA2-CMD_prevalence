@@ -1,4 +1,4 @@
-# LAMA2 related Congenital Muscular Dystrophy Incidence
+# LAMA2 related Congenital Muscular Dystrophy Prevalence
 
 
 ## Requirements
@@ -69,34 +69,34 @@ data/beta_parameter_prior_ExAC.txt
 ```
 python3 var_extract.py
 python3 get_gnomad_af.py > LAMA2_known_pathogenic_novel_lof_gnomad_af.tsv
-./incidence_estimate.r
+./prevalence_estimate.r
 ```
 
 ## Output
 ```
 Estimates including known pathogenic variants and novel gnomAD loss of function variants
-ALL estimated incidence (per million):  8.30285
+ALL estimated prevalence (per million):  8.30285
 ALL confidence interval with  95 % confidence:  6.27363 - 10.53518
-NFE estimated incidence (per million):  10.10345
+NFE estimated prevalence (per million):  10.10345
 NFE confidence interval with  95 % confidence:  6.741657 - 13.94393
-AFR estimated incidence (per million):  4.260902
+AFR estimated prevalence (per million):  4.260902
 AFR confidence interval with  95 % confidence:  2.052136 - 7.016912
-AMR estimated incidence (per million):  6.451412
+AMR estimated prevalence (per million):  6.451412
 AMR confidence interval with  95 % confidence:  3.447242 - 10.10158
-EAS estimated incidence (per million):  1.794676
+EAS estimated prevalence (per million):  1.794676
 EAS confidence interval with  95 % confidence:  0.6288023 - 3.360779
 
 
 Conservative estimates including only known pathogenic variants
-ALL estimated incidence (per million):  2.542371
+ALL estimated prevalence (per million):  2.542371
 ALL confidence interval with  95 % confidence:  1.748451 - 3.44127
-NFE estimated incidence (per million):  3.204605
+NFE estimated prevalence (per million):  3.204605
 NFE confidence interval with  95 % confidence:  1.893433 - 4.755221
-AFR estimated incidence (per million):  0.9964744
+AFR estimated prevalence (per million):  0.9964744
 AFR confidence interval with  95 % confidence:  0.3189813 - 1.924058
-AMR estimated incidence (per million):  3.026621
+AMR estimated prevalence (per million):  3.026621
 AMR confidence interval with  95 % confidence:  1.3644 - 5.134642
-EAS estimated incidence (per million):  0.38448
+EAS estimated prevalence (per million):  0.38448
 EAS confidence interval with  95 % confidence:  0.06072101 - 0.8871178
 ```
 

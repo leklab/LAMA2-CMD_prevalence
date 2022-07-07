@@ -34,7 +34,7 @@ get_var_normal <- function(vs,ws){
   return(sum(vars))
 }
 
-get_incidence_estimate <- function(pop){
+get_prevalence_estimate <- function(pop){
 
   pop_ac_col = paste(pop,"AC",sep="_")
   pop_an_col = paste(pop,"AN",sep="_")
@@ -92,7 +92,7 @@ get_incidence_estimate <- function(pop){
   up <- qchisq(1-alpha/2,1,ncp = mu^2/sigma.2)*sigma.2
 
 
-  cat(pop,"estimated incidence (per million): ",prev.estimated*1e6,"\n")
+  cat(pop,"estimated prevalence (per million): ",prev.estimated*1e6,"\n")
   cat(pop,"confidence interval with ",as.numeric(confidence)*100,"% confidence: ",lb*1e6,"-",up*1e6,"\n")
 
 }
@@ -104,20 +104,20 @@ params = read.csv("data/beta_parameter_prior_ExAC.txt",header=T,sep="\t")
 
 cat("Estimates including known pathogenic variants and novel gnomAD loss of function variants\n")
 filtered_data = subset(data, ALL_AC < 40 & Annotation != 'start_lost')
-get_incidence_estimate("ALL")
-get_incidence_estimate("NFE")
-get_incidence_estimate("AFR")
-get_incidence_estimate("AMR")
-get_incidence_estimate("EAS")
+get_prevalence_estimate("ALL")
+get_prevalence_estimate("NFE")
+get_prevalence_estimate("AFR")
+get_prevalence_estimate("AMR")
+get_prevalence_estimate("EAS")
 
 
 cat("\n\nConservative estimates including only known pathogenic variants\n")
 filtered_data = subset(data, ALL_AC < 40 & INFO != 'Novel_gnomAD_LoF' & Annotation != 'start_lost')
-get_incidence_estimate("ALL")
-get_incidence_estimate("NFE")
-get_incidence_estimate("AFR")
-get_incidence_estimate("AMR")
-get_incidence_estimate("EAS")
+get_prevalence_estimate("ALL")
+get_prevalence_estimate("NFE")
+get_prevalence_estimate("AFR")
+get_prevalence_estimate("AMR")
+get_prevalence_estimate("EAS")
 
 
 
